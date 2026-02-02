@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>인형 옷 입히기 게임</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        
+        /* 상단 영역: 버튼들 */
+        #top-ui {
+            position: absolute; top: 0; width: 100%; height: 100px;
+            background: rgba(255, 255, 255, 0.8); z-index: 100;
+            display: flex; justify-content: space-between; align-items: center; padding: 0 20px;
+            box-sizing: border-box; border-bottom: 2px solid #ccc;
+        }
+
+        /* 중앙 영역: 인물 및 배경 */
+        #game-scene {
+            position: relative; width: 100vw; height: 100vh;
+            background-color: #f0f0f0; /* 기본 배경: 당직실 컨셉 */
+            display: flex; justify-content: center; align-items: center;
+        }
+        .character-container { position: relative; display: flex; gap: 50px; }
+        .character { width: 150px; height: 300px; border: 2px dashed #999; position: relative; }
+
+        /* 하단 영역: 옷장 (드래그 가능하도록 설정 예정) */
+        #closet {
+            position: absolute; bottom: 0; width: 100%; height: 40%;
+            background: #fff; border-top: 5px solid #555; z-index: 50;
+            display: flex; flex-wrap: wrap; gap: 10px; padding: 20px; box-sizing: border-box;
+            cursor: grab;
+        }
+        .closet-handle {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 100px; height: 10px; background: #ccc; border-radius: 5px; cursor: ns-resize;
+        }
+        .clothing-item { width: 80px; height: 80px; background: #ddd; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="top-ui">
+        <div><button onclick="changeBackground()">배경 변경 (B)</button></div>
+        <div>
+            <button onclick="location.reload()">리셋</button>
+            <button>Back</button>
+        </div>
+    </div>
+
+    <div id="game-scene">
+        <div class="character-container">
+            <div id="char-A" class="character">강혁 (FIX)</div>
+            <div id="char-B" class="character">재원 (FIX)</div>
+        </div>
+    </div>
+
+    <div id="closet">
+        <div class="closet-handle" id="drag-handle"></div>
+        <div class="clothing-item" draggable="true" id="cloth-A1">강혁옷1</div>
+        <div class="clothing-item" draggable="true" id="cloth-B1">재원옷1</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
