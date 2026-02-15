@@ -4,8 +4,8 @@
     "height": "250px"
   },
   "characterPositions": {
-    "left": { "x": 0, "y": 0 },
-    "right": { "x": 0, "y": 0 }
+    "left": { "x": 50, "y": 0 },
+    "right": { "x": -50, "y": 0 }
   },
   "characterCrop": {
     "left": { "x": 0, "y": 0, "width": 1000, "height": 1500 },
