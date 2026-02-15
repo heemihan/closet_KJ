@@ -182,7 +182,7 @@
       transition: border-color 120ms ease, background-color 120ms ease;
     }
 
-    .character-hitbox.active { border-color: rgba(34, 197, 94, 0.85); background: rgba(34, 197, 94, 0.12); }
+    .character-hitbox.active { border-color: transparent; background: transparent; }
 
     .drop-zones {
       position: absolute;
@@ -198,10 +198,7 @@
       transition: border-color 120ms ease, background-color 120ms ease;
     }
 
-    .drop-zone.active {
-      border-color: rgba(34, 197, 94, 0.95);
-      background: rgba(34, 197, 94, 0.12);
-    }
+    .drop-zone.active { border-color: transparent; background: transparent; }
 
     #eventOverlay {
       position: absolute;
@@ -429,8 +426,15 @@
     .wardrobe-item:active { cursor: grabbing; }
 
     @media (max-width: 900px) {
+      :root {
+        --dialog-text-font-size: clamp(11px, 3.1vw, 14px);
+        --dialog-text-line-height: 1.35;
+        --dialog-text-min-height: 46px;
+        --dialog-panel-padding: 10px;
+      }
+
       #characterArea {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         height: auto;
         max-height: none;
@@ -442,6 +446,8 @@
       #stage {
         height: auto;
         min-height: 0;
+        flex: 0 0 auto;
+        overflow: visible;
       }
 
       #gameRoot {
@@ -452,6 +458,10 @@
 
       .character-wrap {
         transform: none;
+      }
+
+      .character-wrap:nth-child(2) {
+        margin-left: -24%;
       }
     }
   </style>
@@ -546,6 +556,14 @@
     const CHARACTER_VIEW_WIDTH = (CHARACTER_SOURCE_SIZE.width / CHARACTER_SOURCE_SIZE.height) * CHARACTER_VIEW_HEIGHT;
     const CHARACTER_SCALE = CHARACTER_VIEW_HEIGHT / 520;
     const DEFAULT_CHARACTER_CROP = { x: 0, y: 0, width: 1000, height: 1500 };
+    const MOBILE_BREAKPOINT = 900;
+    const MOBILE_CHARACTER_SCALE = {
+      min: 0.52,
+      max: 1,
+      // 가로 2열에서 캐릭터 여백/겹침을 반영해 크기를 계산하기 위한 계수.
+      // 2.0이면 붙어 있고, 값이 작을수록 더 많이 겹칩니다.
+      fitFactor: 2.1
+    };
     const SLOT_LAYOUT = Object.fromEntries(
       Object.entries(SLOT_LAYOUT_SOURCE).map(([slot, cfg]) => [
         slot,
@@ -568,6 +586,7 @@
     const WARDROBE_PREVIEW_SIZE = { width: 250, height: 375 };
     const DRAG_PREVIEW_SIZE = { width: 110, height: 165 };
     const TOUCH_DRAG_THRESHOLD = 12;
+    const TOUCH_DRAG_SCROLL_RATIO = 1.25;
     const ASSET_DIR = 'assets/clothes';
     const CHAR_ASSET_DIR = 'assets/characters';
     const IS_FILE_PROTOCOL = window.location.protocol === 'file:';
@@ -1115,6 +1134,7 @@
     let dialogFlashTimer = null;
     let dialogTypeTimer = null;
     let isTyping = false;
+    let characterLayoutRaf = 0;
     const DIALOG_FLASH_CYCLES = 5;
     const DIALOG_FLASH_INTERVAL_MS = 300;
     const DIALOG_FLASH_VISIBLE_OPACITY = 0.65;
@@ -1239,6 +1259,36 @@
       });
     }
 
+    function resolveCharacterScale() {
+      const viewportWidth = Number(window.innerWidth) || 1;
+      const viewportHeight = Number(window.innerHeight) || 1;
+      const isMobile = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches;
+      if (!isMobile) {
+        return 1;
+      }
+
+      const widthScale = Math.max(
+        MOBILE_CHARACTER_SCALE.min,
+        Math.min(
+          MOBILE_CHARACTER_SCALE.max,
+          (viewportWidth - 28) / (CHARACTER_VIEW_WIDTH * MOBILE_CHARACTER_SCALE.fitFactor)
+        )
+      );
+
+      const heightScale = Math.max(
+        MOBILE_CHARACTER_SCALE.min,
+        Math.min(
+          MOBILE_CHARACTER_SCALE.max,
+          (viewportHeight - 250) / (CHARACTER_VIEW_HEIGHT * 2)
+        )
+      );
+
+      return Math.max(
+        MOBILE_CHARACTER_SCALE.min,
+        Math.min(MOBILE_CHARACTER_SCALE.max, Math.min(widthScale, heightScale))
+      );
+    }
+
     function normalizeItem(item) {
       if (item._normalizedImagePromise) {
         return item._normalizedImagePromise;
@@ -1300,22 +1350,26 @@
 
     function applySlotLayoutToCharacter(charId) {
       const char = characters[charId];
-      char.wrap.style.width = `${CHARACTER_VIEW_WIDTH}px`;
-      char.wrap.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+      const scale = resolveCharacterScale();
+      const scaledWidth = CHARACTER_VIEW_WIDTH * scale;
+      const scaledHeight = CHARACTER_VIEW_HEIGHT * scale;
+
+      char.wrap.style.width = `${scaledWidth}px`;
+      char.wrap.style.height = `${scaledHeight}px`;
 
       const baseImage = char.wrap.querySelector('.char-base');
-      baseImage.style.width = `${CHARACTER_VIEW_WIDTH}px`;
-      baseImage.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+      baseImage.style.width = `${scaledWidth}px`;
+      baseImage.style.height = `${scaledHeight}px`;
 
-      char.hitbox.style.width = `${CHARACTER_VIEW_WIDTH}px`;
-      char.hitbox.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+      char.hitbox.style.width = `${scaledWidth}px`;
+      char.hitbox.style.height = `${scaledHeight}px`;
 
       char.zoneEls.forEach((zone) => {
         const cfg = SLOT_LAYOUT[zone.dataset.slot];
-        zone.style.left = `${cfg.left}px`;
-        zone.style.top = `${cfg.top}px`;
-        zone.style.width = `${cfg.w}px`;
-        zone.style.height = `${cfg.h}px`;
+        zone.style.left = `${cfg.left * scale}px`;
+        zone.style.top = `${cfg.top * scale}px`;
+        zone.style.width = `${cfg.w * scale}px`;
+        zone.style.height = `${cfg.h * scale}px`;
       });
     }
 
@@ -1327,11 +1381,22 @@
 
     function applyCharacterPositions() {
       Object.entries(characters).forEach(([charId, char]) => {
+        const scale = resolveCharacterScale();
         const layout = characterPositions[charId] || DEFAULT_CHAR_POSITIONS[charId];
         const x = Number.isFinite(layout?.x) ? layout.x : 0;
         const y = Number.isFinite(layout?.y) ? layout.y : 0;
-        char.wrap.style.setProperty('--char-offset-x', `${x}px`);
-        char.wrap.style.setProperty('--char-offset-y', `${y}px`);
+        char.wrap.style.setProperty('--char-offset-x', `${x * scale}px`);
+        char.wrap.style.setProperty('--char-offset-y', `${y * scale}px`);
+      });
+    }
+
+    function refreshCharacterLayout() {
+      applySlotLayout();
+      applyCharacterPositions();
+      ['left', 'right'].forEach((charId) => {
+        SLOT_ORDER.forEach((slot) => {
+          applyClothing(charId, slot, state.outfits[charId][slot]);
+        });
       });
     }
 
@@ -1423,8 +1488,8 @@
       const appliedLayer = Number.isFinite(itemLayer) ? itemLayer : cfg.z;
       layer.style.left = '0px';
       layer.style.top = '0px';
-      layer.style.width = `${CHARACTER_VIEW_WIDTH}px`;
-      layer.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+      layer.style.width = '100%';
+      layer.style.height = '100%';
       layer.style.zIndex = `${Math.min(OUTPUT_LAYER_LIMIT.max, Math.max(OUTPUT_LAYER_LIMIT.min, appliedLayer))}`;
       layer.src = item.image;
       layer.style.display = 'block';
@@ -1626,8 +1691,17 @@
             const deltaX = activeTouchDrag.x - activeTouchDrag.startX;
             const deltaY = activeTouchDrag.y - activeTouchDrag.startY;
             const distance = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
-            if (!activeTouchDrag.dragging && distance >= TOUCH_DRAG_THRESHOLD) {
-              activeTouchDrag.dragging = true;
+            const absX = Math.abs(deltaX);
+            const absY = Math.abs(deltaY);
+
+            if (!activeTouchDrag.dragging) {
+              if (distance >= TOUCH_DRAG_THRESHOLD && absX > absY * TOUCH_DRAG_SCROLL_RATIO) {
+                clearTouchDrag();
+                return;
+              }
+              if (distance >= TOUCH_DRAG_THRESHOLD) {
+                activeTouchDrag.dragging = true;
+              }
             }
             if (!activeTouchDrag.dragging) {
               return;
@@ -2040,6 +2114,15 @@
         if (activeEvent) {
           nextScene();
         }
+      });
+      window.addEventListener('resize', () => {
+        if (characterLayoutRaf) {
+          cancelAnimationFrame(characterLayoutRaf);
+        }
+        characterLayoutRaf = requestAnimationFrame(() => {
+          refreshCharacterLayout();
+          characterLayoutRaf = 0;
+        });
       });
       document.addEventListener('keydown', (e) => {
         if (!activeEvent) {
