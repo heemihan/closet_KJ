@@ -1,0 +1,19 @@
+﻿{
+  "backgrounds": [
+    {
+      "id": "방",
+      "image": "assets/backgrounds/room.png",
+      "style": "linear-gradient(180deg, #2d4c5b 0%, #20334f 52%, #111a2f 100%)"
+    },
+    {
+      "id": "오피스",
+      "image": "assets/backgrounds/office.png",
+      "style": "linear-gradient(180deg, #4b2f1a 0%, #FFFFFF 52%, #FFFFFF 100%)"
+    },
+    {
+      "id": "C",
+      "image": "assets/backgrounds/room.png",
+      "style": "linear-gradient(180deg, #2b295f 0%, #20204f 46%, #17163a 100%)"
+    }
+  ]
+}

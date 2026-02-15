@@ -1,0 +1,51 @@
+{
+  "hangerSize": {
+    "width": "100%",
+    "height": "250px"
+  },
+  "characterPositions": {
+    "left": { "x": 0, "y": 0 },
+    "right": { "x": 0, "y": 0 }
+  },
+  "characterCrop": {
+    "left": { "x": 0, "y": 0, "width": 1000, "height": 1500 },
+    "right": { "x": 0, "y": 0, "width": 1000, "height": 1500 }
+  },
+  "wardrobes": [
+    {
+      "title": "위 행거 (왼쪽 캐릭터)",
+      "targetChar": "left",
+      "hangerSize": {
+        "width": "100%",
+        "height": "200px"
+      },
+      "items": [
+        { "id": "left_white_shirt", "name": "white_shirt", "color": "#334155", "src": "assets/clothes/left_white_shirt.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_B", "name": "white_shirt_B", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_C", "name": "white_shirt_C", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_D", "name": "white_shirt_D", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_E", "name": "white_shirt_E", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_F", "name": "white_shirt_F", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_G", "name": "white_shirt_G", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_H", "name": "white_shirt_H", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_I", "name": "white_shirt_I", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_J", "name": "white_shirt_J", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_K", "name": "white_shirt_K", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_white_shirt_Hidden", "name": "white_shirt_Hidden", "align": "right", "color": "#334155", "src": "assets/clothes/left_white_shirt_C.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } }
+      ]
+    },
+    {
+      "title": "아래 행거 (오른쪽 캐릭터)",
+      "targetChar": "right",
+      "hangerSize": {
+        "width": "100%",
+        "height": "200px"
+      },
+      "items": [
+        { "id": "right_blue_shirt", "name": "blue_shirt", "color": "#65a30d", "src": "assets/clothes/right_blue_shirt.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "right_blue_shirt_B", "name": "blue_shirt_B", "color": "#65a30d", "src": "assets/clothes/right_blue_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "right_blue_shirt_Hidden", "name": "blue_shirt_Hidden", "align": "right", "color": "#65a30d", "src": "assets/clothes/right_blue_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } }
+      ]
+    }
+  ]
+}

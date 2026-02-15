@@ -1,0 +1,2072 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>캐릭터 옷 입히기</title>
+  <style>
+    :root {
+      --bg-top: #101d38;
+      --bg-mid: #0b1228;
+      --line: rgba(148, 163, 184, 0.35);
+      --text: #e5e7eb;
+      --muted: #93a4bf;
+      --danger: #fb7185;
+      --wardrobe-item-width: 250px;
+      --wardrobe-item-height: 305px;
+      --ui-width: 600px;
+      --ui-height: 900px;
+      --stage-height: 450px;
+      --hanger-width: 100%;
+      --hanger-height: 150px;
+      --hanger-row-bottom: 8px;
+      --dialog-panel-width: min(75%, 660px);
+      --dialog-panel-padding: 14px;
+      --dialog-text-min-height: 58px;
+      --dialog-text-font-size: 16px;
+      --dialog-text-line-height: 1.5;
+    }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(130% 85% at 15% 12%, #17335c 0%, transparent 44%),
+        radial-gradient(130% 90% at 85% 18%, #1c2f53 0%, transparent 48%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-mid));
+    }
+
+    #gameRoot {
+      width: min(var(--ui-width), calc(100vw - 16px));
+      height: min(var(--ui-height), calc(100vh - 16px));
+      max-width: var(--ui-width);
+      max-height: var(--ui-height);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    #topBar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: rgba(5, 12, 31, 0.82);
+      border-radius: 14px;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    #bgSwap {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(2, 8, 23, 0.7);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 4px 8px;
+    }
+
+    .swapBtn,
+    .controlBtn {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--text);
+      border-radius: 8px;
+      width: 36px;
+      height: 34px;
+      cursor: pointer;
+    }
+
+    .controlBtn { width: auto; padding: 0 12px; }
+    .controlBtn.primary { color: #86efac; }
+    .controlBtn.warning { color: var(--danger); }
+
+    #bgId {
+      display: inline-block;
+      width: 58px;
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: 3px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    #stage {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(3, 8, 24, 0.76);
+      flex: 0 0 var(--stage-height);
+      min-height: var(--stage-height);
+      height: var(--stage-height);
+      padding: 6px 8px;
+      box-shadow: 0 20px 34px rgba(0, 0, 0, 0.32);
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    #backgroundLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      transition: background 200ms ease;
+    }
+
+    #characterArea {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      place-items: center;
+      height: calc(var(--stage-height) - 20px);
+      overflow: hidden;
+    }
+
+    .character-wrap {
+      position: relative;
+      width: 260px;
+      height: 390px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: transparent;
+      z-index: 4;
+      transform: translate(var(--char-offset-x, 0px), var(--char-offset-y, 0px));
+    }
+
+    .char-base {
+      position: absolute;
+      width: 260px;
+      height: 390px;
+      left: 0;
+      top: 0;
+      z-index: 0;
+      pointer-events: none;
+      object-fit: contain;
+      object-position: top center;
+    }
+
+    .clothing-layer {
+      position: absolute;
+      pointer-events: none;
+      display: none;
+    }
+
+    .character-hitbox {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 260px;
+      height: 390px;
+      z-index: 20;
+      pointer-events: none;
+      border: 2px dashed transparent;
+      border-radius: 12px;
+      transition: border-color 120ms ease, background-color 120ms ease;
+    }
+
+    .character-hitbox.active { border-color: rgba(34, 197, 94, 0.85); background: rgba(34, 197, 94, 0.12); }
+
+    .drop-zones {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 19;
+    }
+
+    .drop-zone {
+      position: absolute;
+      border: 2px dashed transparent;
+      border-radius: 12px;
+      transition: border-color 120ms ease, background-color 120ms ease;
+    }
+
+    .drop-zone.active {
+      border-color: rgba(34, 197, 94, 0.95);
+      background: rgba(34, 197, 94, 0.12);
+    }
+
+    #eventOverlay {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 10px;
+      top: auto;
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    #eventOverlay.show {
+      display: flex;
+    }
+
+    #eventPanel {
+      width: var(--dialog-panel-width);
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      overflow: hidden;
+      padding: var(--dialog-panel-padding);
+      gap: 8px;
+      background: transparent;
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      pointer-events: auto;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+      cursor: pointer;
+    }
+
+    #eventPanel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('assets/ui/comm01.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 100% 100%;
+      opacity: 0.7;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    #dialogFlash {
+      position: absolute;
+      inset: 0;
+      background-image: url('assets/ui/comm02.png');
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 100% 100%;
+      opacity: 0;
+      z-index: 2;
+      pointer-events: none;
+      transition: opacity 120ms ease;
+    }
+
+    #dialogText {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-height: var(--dialog-text-min-height);
+      line-height: var(--dialog-text-line-height);
+      font-size: var(--dialog-text-font-size);
+      white-space: pre-line;
+      background: rgba(2, 6, 23, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    #wardrobe {
+      flex: 1;
+      margin-top: 0;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(3, 9, 25, 0.82);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overflow: auto;
+    }
+
+    #wardrobe h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      display: none;
+    }
+
+    #statusBar {
+      margin: 4px 0 0;
+      color: #93c5fd;
+      font-size: 12px;
+      min-height: 20px;
+      display: none;
+    }
+
+    .hanger-row {
+      --row-hanger-width: var(--hanger-width);
+      --row-hanger-height: var(--hanger-height);
+      margin-bottom: 6px;
+      padding-bottom: 0;
+      padding-top: 0;
+      position: relative;
+      background-image: url('assets/ui/hanger.png');
+      background-repeat: no-repeat;
+      background-size: var(--row-hanger-width) var(--row-hanger-height);
+      background-position: center top;
+      border-bottom: none;
+      height: var(--row-hanger-height);
+      box-sizing: border-box;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-gutter: stable;
+      touch-action: pan-x;
+    }
+
+    .hanger-title {
+      color: #cbd5e1;
+      margin-bottom: 8px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .hanger-line {
+      display: none;
+      height: 8px;
+      background: linear-gradient(90deg, rgba(203, 213, 225, 0.65), rgba(148, 163, 184, 0.18));
+      border-radius: 5px;
+      margin-bottom: 10px;
+      box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.4);
+      opacity: 0.85;
+    }
+
+    .hanger-items {
+      position: relative;
+      display: inline-flex;
+      gap: 0;
+      align-items: center;
+      height: calc(var(--row-hanger-height) - 10px);
+      min-height: 0;
+      overflow: visible;
+      width: max-content;
+      min-width: max-content;
+      padding-left: 12px;
+      padding-top: 2px;
+      box-sizing: border-box;
+      touch-action: pan-x;
+    }
+
+    .wardrobe-item {
+      position: relative;
+      width: var(--wardrobe-item-width);
+      height: var(--wardrobe-item-height);
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      display: block;
+      padding: 0;
+      overflow: hidden;
+      text-indent: -9999px;
+      white-space: nowrap;
+      cursor: grab;
+      color: #e2e8f0;
+      border: 0;
+      background-color: transparent;
+    }
+
+    .wardrobe-item.align-right {
+      margin-left: auto !important;
+      transform: none !important;
+    }
+
+    .wardrobe-item.align-right + .wardrobe-item {
+      margin-left: 0 !important;
+    }
+
+    .wardrobe-item.is-hidden {
+      visibility: hidden;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .wardrobe-item.is-image-only {
+      width: var(--wardrobe-item-width);
+      height: var(--wardrobe-item-height);
+    }
+
+    .wardrobe-item img {
+      position: absolute;
+      width: 1000px;
+      height: 1500px;
+      left: 0;
+      top: 0;
+      border-radius: 8px;
+      border: 0;
+      background: transparent;
+      image-rendering: auto;
+      pointer-events: none;
+    }
+
+    .item-label {
+      font-size: 11px;
+      line-height: 1.2;
+    }
+
+    .item-meta {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .hanger-items .wardrobe-item:nth-child(2n) { transform: rotate(-2deg); }
+    .hanger-items .wardrobe-item:nth-child(3n) { transform: rotate(2deg); }
+    .hanger-items .wardrobe-item + .wardrobe-item {
+      margin-left: -200px;
+    }
+
+    .wardrobe-item:active { cursor: grabbing; }
+
+    @media (max-width: 900px) {
+      #characterArea {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+        justify-items: center;
+        padding-bottom: 8px;
+      }
+
+      #stage {
+        height: auto;
+        min-height: 0;
+      }
+
+      #gameRoot {
+        width: calc(100vw - 12px);
+        height: auto;
+        min-height: calc(100vh - 12px);
+      }
+
+      .character-wrap {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameRoot">
+    <header id="topBar">
+      <div id="bgSwap">
+        <button class="swapBtn" id="bgPrev" aria-label="이전 배경">◀</button>
+        <span id="bgId">B</span>
+        <button class="swapBtn" id="bgNext" aria-label="다음 배경">▶</button>
+      </div>
+      <div class="controls">
+        <button class="controlBtn primary" id="undoBtn">Back</button>
+        <button class="controlBtn warning" id="resetBtn">Reset</button>
+      </div>
+    </header>
+
+    <section id="stage">
+      <div id="backgroundLayer" aria-hidden="true"></div>
+      <div id="characterArea">
+        <div class="character-wrap" data-char="left">
+          <img id="base-left" class="char-base" alt="왼쪽 캐릭터 베이스">
+          <img class="clothing-layer" data-slot="hat" alt="모자">
+          <img class="clothing-layer" data-slot="top" alt="상의">
+          <img class="clothing-layer" data-slot="bottom" alt="하의">
+          <img class="clothing-layer" data-slot="shoes" alt="신발">
+          <img class="clothing-layer" data-slot="accessory" alt="장식">
+          <div class="drop-zones">
+            <div class="drop-zone" data-slot="hat"></div>
+            <div class="drop-zone" data-slot="top"></div>
+            <div class="drop-zone" data-slot="bottom"></div>
+            <div class="drop-zone" data-slot="shoes"></div>
+            <div class="drop-zone" data-slot="accessory"></div>
+          </div>
+          <div class="character-hitbox"></div>
+        </div>
+
+        <div class="character-wrap" data-char="right">
+          <img id="base-right" class="char-base" alt="오른쪽 캐릭터 베이스">
+          <img class="clothing-layer" data-slot="hat" alt="모자">
+          <img class="clothing-layer" data-slot="top" alt="상의">
+          <img class="clothing-layer" data-slot="bottom" alt="하의">
+          <img class="clothing-layer" data-slot="shoes" alt="신발">
+          <img class="clothing-layer" data-slot="accessory" alt="장식">
+          <div class="drop-zones">
+            <div class="drop-zone" data-slot="hat"></div>
+            <div class="drop-zone" data-slot="top"></div>
+            <div class="drop-zone" data-slot="bottom"></div>
+            <div class="drop-zone" data-slot="shoes"></div>
+            <div class="drop-zone" data-slot="accessory"></div>
+          </div>
+          <div class="character-hitbox"></div>
+        </div>
+      </div>
+      <section id="eventOverlay">
+        <div id="eventPanel">
+          <div id="dialogText"></div>
+          <div id="dialogFlash" aria-hidden="true"></div>
+        </div>
+      </section>
+    </section>
+
+    <section id="wardrobe">
+      <h2>옷장 (드래그 앤 드롭)</h2>
+      <p id="statusBar">옷을 아래 행거에서 드래그해 원하는 캐릭터 상단 창 위에 놓으면 착용됩니다.</p>
+      <div id="row-1" class="hanger-row"></div>
+      <div id="row-2" class="hanger-row"></div>
+    </section>
+  </div>
+
+  <script>
+    const SLOT_ORDER = ['hat', 'top', 'bottom', 'shoes', 'accessory'];
+    const SLOT_LAYOUT_SOURCE = {
+      hat: { left: 52, top: 10, w: 154, h: 84 },
+      top: { left: 84, top: 108, w: 92, h: 126 },
+      bottom: { left: 70, top: 250, w: 122, h: 140 },
+      shoes: { left: 74, top: 400, w: 114, h: 82 },
+      accessory: { left: 110, top: 188, w: 48, h: 48 }
+    };
+    const SLOT_LAYER_Z = {
+      base: 1,
+      bottom: 10,
+      top: 20,
+      shoes: 30,
+      hat: 40,
+      accessory: 50
+    };
+    const OUTPUT_LAYER_LIMIT = { min: 0, max: 100 };
+    const CHARACTER_SOURCE_SIZE = { width: 1000, height: 1500 };
+    const CHARACTER_VIEW_HEIGHT = 420;
+    const CHARACTER_VIEW_WIDTH = (CHARACTER_SOURCE_SIZE.width / CHARACTER_SOURCE_SIZE.height) * CHARACTER_VIEW_HEIGHT;
+    const CHARACTER_SCALE = CHARACTER_VIEW_HEIGHT / 520;
+    const DEFAULT_CHARACTER_CROP = { x: 0, y: 0, width: 1000, height: 1500 };
+    const SLOT_LAYOUT = Object.fromEntries(
+      Object.entries(SLOT_LAYOUT_SOURCE).map(([slot, cfg]) => [
+        slot,
+        {
+          left: cfg.left * CHARACTER_SCALE,
+          top: cfg.top * CHARACTER_SCALE,
+          w: cfg.w * CHARACTER_SCALE,
+          h: cfg.h * CHARACTER_SCALE,
+          z: SLOT_LAYER_Z[slot] ?? 10
+        }
+      ])
+    );
+
+    const ASSET_BASE_SIZE = { width: 1000, height: 1500 };
+    const CHROMA_COLOR = { r: 195, g: 28, b: 241 };
+    const CHROMA_TOLERANCE_SQ = 10000;
+    const ASSET_TRIM_PADDING = 10;
+    const WARDROBE_PREVIEW_OFFSET_DEFAULT = { x: -382, y: -811 };
+    const WARDROBE_PREVIEW_VERTICAL_BIAS = 100;
+    const WARDROBE_PREVIEW_SIZE = { width: 250, height: 375 };
+    const DRAG_PREVIEW_SIZE = { width: 110, height: 165 };
+    const TOUCH_DRAG_THRESHOLD = 12;
+    const ASSET_DIR = 'assets/clothes';
+    const CHAR_ASSET_DIR = 'assets/characters';
+    const IS_FILE_PROTOCOL = window.location.protocol === 'file:';
+    const CAN_SET_CORS =
+      window.location.protocol === 'http:' || window.location.protocol === 'https:';
+    const CHARACTER_ASSETS = {
+      left: `${CHAR_ASSET_DIR}/character_left.png`,
+      right: `${CHAR_ASSET_DIR}/character_right.png`
+    };
+
+    const DEFAULT_WARDROBES = [
+      {
+        title: '1열 (왼쪽 캐릭터)',
+        targetChar: 'left',
+        items: [
+          { id: 'left_white_shirt', name: '화이트셔츠', color: '#334155', src: 'assets/clothes/left_white_shirt.png' },
+          { id: 'blue_shirt', name: '블루 셔츠', color: '#3b82f6', src: 'assets/clothes/blue_shirt.png' },
+          { id: 'red_jacket', name: '레드 자켓', color: '#ef4444', src: 'assets/clothes/red_jacket.png' },
+          { id: 'yellow_suit', name: '옐로우 정장', color: '#eab308', src: 'assets/clothes/yellow_suit.png' },
+          { id: 'pajama_top', name: '잠옷', color: '#a78bfa', src: 'assets/clothes/pajama_top.png' },
+          { id: 'soft_hat', name: '비니', color: '#0891b2', src: 'assets/clothes/soft_hat.png' },
+          { id: 'cap_hat', name: '캡', color: '#f97316', src: 'assets/clothes/cap_hat.png' }
+        ]
+      },
+      {
+        title: '2열 (오른쪽 캐릭터)',
+        targetChar: 'right',
+        items: [
+          { id: 'right_blue_shirt', name: '블루셔츠 치마', color: '#65a30d', src: 'assets/clothes/right_blue_shirt.png' },
+          { id: 'dark_pants', name: '진바지', color: '#334155', src: 'assets/clothes/dark_pants.png' },
+          { id: 'slim_pants', name: '슬림바지', color: '#2563eb', src: 'assets/clothes/slim_pants.png' },
+          { id: 'heart_acc', name: '하트 브로치', color: '#ec4899', src: 'assets/clothes/heart_acc.png' },
+          { id: 'flower_acc', name: '꽃 장식', color: '#22c55e', src: 'assets/clothes/flower_acc.png' },
+          { id: 'light_shoes', name: '스니커즈', color: '#64748b', src: 'assets/clothes/light_shoes.png' },
+          { id: 'dark_shoes', name: '부츠', color: '#b45309', src: 'assets/clothes/dark_shoes.png' }
+        ]
+      }
+    ];
+
+    const DEFAULT_EVENTS = [
+      {
+        id: 'test-left-white-right-blue',
+        name: '테스트 이벤트',
+        outputId: 'out-test-left-white-right-blue',
+        conditions: [
+          { char: 'left', id: 'left_white_shirt' },
+          { char: 'right', id: 'right_blue_shirt' }
+        ]
+      }
+    ];
+
+    const DEFAULT_OUTPUTS = [
+      {
+        id: 'out-test-left-white-right-blue',
+        characterArt: {
+          left: 'assets/characters/character_left_eventA.png',
+          right: 'assets/characters/character_right_eventA.png'
+        },
+        scenes: [
+          { speaker: '사회자', text: '왼쪽이 \"left_white_shirt\", 오른쪽이 \"right_blue_shirt\"을 입어서 이벤트가 시작되었다.' },
+          { speaker: 'Character Left', text: '이 조합은 디버그용 테스트 조합이야.' },
+          { speaker: 'Character Right', text: '그래도 잠깐 연출용 장면이 잘 동작하면 성공이야.' },
+          { speaker: '사회자', text: '이벤트 종료 후 캐릭터 이미지가 원래 상태로 돌아간다.' }
+        ]
+      }
+    ];
+
+    const DEFAULT_BACKGROUNDS = [
+      { id: 'A', image: 'assets/backgrounds/room.png', style: 'linear-gradient(180deg, #2d4c5b 0%, #20334f 52%, #111a2f 100%)' },
+      { id: 'B', image: 'assets/backgrounds/room.png', style: 'linear-gradient(180deg, #4b2f1a 0%, #311f16 52%, #1f1412 100%)' },
+      { id: 'C', image: 'assets/backgrounds/room.png', style: 'linear-gradient(180deg, #2b295f 0%, #20204f 46%, #17163a 100%)' }
+    ];
+
+    const DEFAULT_CHAR_POSITIONS = {
+      left: { x: 0, y: -100 },
+      right: { x: 0, y: -100 }
+    };
+
+    let wardrobes = [];
+    let eventScenarios = [];
+    let eventOutputs = [];
+    let hangerSettings = { width: '100%', height: '220px' };
+    let characterPositions = {
+      left: { ...DEFAULT_CHAR_POSITIONS.left },
+      right: { ...DEFAULT_CHAR_POSITIONS.right }
+    };
+    let characterCrops = {
+      left: { ...DEFAULT_CHARACTER_CROP },
+      right: { ...DEFAULT_CHARACTER_CROP }
+    };
+    let backgrounds = [];
+    const DEBUG_WARDROBE = (() => {
+      const params = new URLSearchParams(window.location.search);
+      const debug = params.get('debug');
+      return debug === 'wardrobe' || debug === '1' || debug === 'true' || debug === 'yes';
+    })();
+
+    const state = {
+      bgIndex: 1,
+      outfits: {
+        left: { hat: null, top: null, bottom: null, shoes: null, accessory: null },
+        right: { hat: null, top: null, bottom: null, shoes: null, accessory: null }
+      },
+      outfitKeys: {
+        left: { hat: null, top: null, bottom: null, shoes: null, accessory: null },
+        right: { hat: null, top: null, bottom: null, shoes: null, accessory: null }
+      },
+      history: [],
+      currentEvent: null
+    };
+
+    const itemById = new Map();
+    const itemByWardrobeKey = new Map();
+    let rawConfig = null;
+    let rawConfigEvents = null;
+    let rawConfigOutputs = null;
+    let rawConfigBg = null;
+    const outputById = new Map();
+    const backgroundImageCache = new Map();
+    let activeDragGhost = null;
+    let activeTouchDrag = null;
+    const dataState = { loaded: false };
+    const wardrobeItemElements = new Map();
+
+    function dumpWardrobeDebugState(label = 'snapshot') {
+      if (!DEBUG_WARDROBE) {
+        return;
+      }
+      const rows = [];
+      wardrobeItemElements.forEach((entry, key) => {
+        const equipped = isWardrobeItemEquipped(entry);
+        const equippedItem = entry.targetChar ? state.outfits[entry.targetChar]?.[entry.slot] : null;
+        rows.push({
+          key,
+          id: entry.item && entry.item.id,
+          name: entry.item && entry.item.name,
+          targetChar: entry.targetChar,
+          slot: entry.slot,
+          hidden: !!entry.btn?.classList?.contains('is-hidden'),
+          equipped,
+          equippedKey: equippedItem ? (equippedItem.id || equippedItem.name || '(non-key item)') : '(none)',
+          outfitStateKey: state.outfitKeys[entry.targetChar]?.[entry.slot] || '(none)'
+        });
+      });
+      console.groupCollapsed(`[WARDROBE_DEBUG] ${label}`);
+      console.table(rows);
+      console.log('outfits', {
+        left: {
+          hat: state.outfits.left.hat ? state.outfits.left.hat.id : null,
+          top: state.outfits.left.top ? state.outfits.left.top.id : null,
+          bottom: state.outfits.left.bottom ? state.outfits.left.bottom.id : null,
+          shoes: state.outfits.left.shoes ? state.outfits.left.shoes.id : null,
+          accessory: state.outfits.left.accessory ? state.outfits.left.accessory.id : null
+        },
+        right: {
+          hat: state.outfits.right.hat ? state.outfits.right.hat.id : null,
+          top: state.outfits.right.top ? state.outfits.right.top.id : null,
+          bottom: state.outfits.right.bottom ? state.outfits.right.bottom.id : null,
+          shoes: state.outfits.right.shoes ? state.outfits.right.shoes.id : null,
+          accessory: state.outfits.right.accessory ? state.outfits.right.accessory.id : null
+        },
+        outfitKeys: {
+          left: {
+            hat: state.outfitKeys.left.hat,
+            top: state.outfitKeys.left.top,
+            bottom: state.outfitKeys.left.bottom,
+            shoes: state.outfitKeys.left.shoes,
+            accessory: state.outfitKeys.left.accessory
+          },
+          right: {
+            hat: state.outfitKeys.right.hat,
+            top: state.outfitKeys.right.top,
+            bottom: state.outfitKeys.right.bottom,
+            shoes: state.outfitKeys.right.shoes,
+            accessory: state.outfitKeys.right.accessory
+          }
+        }
+      });
+      console.log('history', state.history.length);
+      console.groupEnd();
+    }
+
+    if (DEBUG_WARDROBE) {
+      window.__debugWardrobe = {
+        dump: dumpWardrobeDebugState
+      };
+      console.log('[WARDROBE_DEBUG] enabled');
+    }
+
+    function resolveWardrobeSlot(item, fallback) {
+      if (item.slot && SLOT_ORDER.includes(item.slot)) {
+        return item.slot;
+      }
+      if (fallback && SLOT_ORDER.includes(fallback)) {
+        return fallback;
+      }
+
+      const haystack = `${item.id || ''} ${item.name || ''} ${item.src || ''}`.toLowerCase();
+      if (/(hat|cap|beanie|beret|soft.*hat|cap.*hat)/.test(haystack)) {
+        return 'hat';
+      }
+      if (/(shoe|boot|sneaker|footwear)/.test(haystack)) {
+        return 'shoes';
+      }
+      if (/(acc|brooch|charm|flower|heart|pin|badge)/.test(haystack)) {
+        return 'accessory';
+      }
+      if (/(pants|skirt|bottom|jeans|sleeve|pajama|slim)/.test(haystack)) {
+        return 'bottom';
+      }
+
+      return 'top';
+    }
+
+    function resolveItemLayer(item) {
+      const raw = item?.layer;
+      if (Number.isFinite(raw)) {
+        return Math.min(OUTPUT_LAYER_LIMIT.max, Math.max(OUTPUT_LAYER_LIMIT.min, raw));
+      }
+      return null;
+    }
+
+    function findLayerConflicts(charId, layer, nextSlot) {
+      if (!Number.isFinite(layer)) {
+        return [];
+      }
+
+      const conflicts = [];
+      SLOT_ORDER.forEach((slot) => {
+        if (slot === nextSlot) {
+          return;
+        }
+
+        const equipped = state.outfits[charId][slot];
+        if (!equipped) {
+          return;
+        }
+
+        const equippedLayer = resolveItemLayer(equipped);
+        if (equippedLayer === layer) {
+          conflicts.push({ slot, prevItem: equipped });
+        }
+      });
+
+      return conflicts;
+    }
+
+    function resolveOutputHangerDefaults(input) {
+      const outputGlobal = normalizeHangerSettings(
+        input?.hangerSize || input?.hanger || input?.hangerSettings || input?.height
+      );
+
+      const outputRows = Array.isArray(input?.wardrobes) ? input.wardrobes : [];
+      const outputRowHangers = outputRows.map((row) =>
+        normalizeHangerSettings(row?.hangerSize || row?.hanger || row?.hangerSettings || row?.height)
+      );
+
+      return {
+        global: outputGlobal,
+        rows: outputRowHangers
+      };
+    }
+
+    function normalizeWardrobes(input, outputHangers = []) {
+      const list = Array.isArray(input) ? input : [];
+      return list.map((row, index) => ({
+        title: row.title || '',
+        targetChar: row.targetChar || 'left',
+        hanger: normalizeHangerSettings(row.hangerSize || row.hanger || row.hangerSettings || outputHangers[index] || null),
+        items: (Array.isArray(row.items) ? row.items : []).map((item) => ({
+          ...item,
+          slot: resolveWardrobeSlot(item, row.slot),
+          align: item.align === 'right' ? 'right' : 'left',
+          layer: Number.isFinite(item.layer)
+            ? item.layer
+            : Number.isFinite(item.z)
+              ? item.z
+              : Number.isFinite(item.zIndex)
+                ? item.zIndex
+                : null,
+          previewOffset: {
+            x: Number.isFinite((item.previewOffset || item.offset || {}).x)
+              ? (item.previewOffset || item.offset).x
+              : WARDROBE_PREVIEW_OFFSET_DEFAULT.x,
+            y: Number.isFinite((item.previewOffset || item.offset || {}).y)
+              ? (item.previewOffset || item.offset).y
+              : WARDROBE_PREVIEW_OFFSET_DEFAULT.y
+          }
+        }))
+      }));
+    }
+
+    function normalizeEventScenarios(input) {
+      const list = Array.isArray(input) ? input : [];
+      return list.map((ev) => ({
+        id: ev.id || `event-${Math.random().toString(36).slice(2, 8)}`,
+        name: ev.name || ev.id || '이벤트',
+        outputId: ev.outputId || ev.id || null,
+        conditions: Array.isArray(ev.conditions) ? ev.conditions : [],
+        characterArt: ev.characterArt || null,
+        scenes: Array.isArray(ev.scenes) ? ev.scenes : []
+      }));
+    }
+
+    function normalizeEventOutputs(input) {
+      const list = Array.isArray(input) ? input : [];
+      return list.map((out) => ({
+        id: out.id || `output-${Math.random().toString(36).slice(2, 8)}`,
+        characterArt: out.characterArt || null,
+        scenes: Array.isArray(out.scenes) ? out.scenes : []
+      }));
+    }
+
+    function normalizeBackgrounds(input) {
+      const list = Array.isArray(input) ? input : [];
+      return list.map((bg) => ({
+        id: bg.id || `bg-${Math.random().toString(36).slice(2, 8)}`,
+        image: bg.image || '',
+        style: bg.style || 'none'
+      }));
+    }
+
+    function normalizeHangerSettings(input) {
+      const fallback = { width: '100%', height: '220px' };
+      if (!input || (typeof input !== 'object')) {
+        return fallback;
+      }
+
+      const width = Number.isFinite(input.width) ? `${input.width}px` : (typeof input.width === 'string' && input.width.trim() ? input.width : fallback.width);
+      const height = Number.isFinite(input.height) ? `${input.height}px` : (typeof input.height === 'string' && input.height.trim() ? input.height : fallback.height);
+
+      return { width, height };
+    }
+
+    function normalizeCharacterPositions(input) {
+      const normalized = {
+        left: {
+          x: Number.isFinite(input?.left?.x) ? input.left.x : DEFAULT_CHAR_POSITIONS.left.x,
+          y: Number.isFinite(input?.left?.y) ? input.left.y : DEFAULT_CHAR_POSITIONS.left.y
+        },
+        right: {
+          x: Number.isFinite(input?.right?.x) ? input.right.x : DEFAULT_CHAR_POSITIONS.right.x,
+          y: Number.isFinite(input?.right?.y) ? input.right.y : DEFAULT_CHAR_POSITIONS.right.y
+        }
+      };
+      return normalized;
+    }
+
+    function normalizeCharacterCropRect(input, fallback) {
+      const source = input && typeof input === 'object' ? input : {};
+      const normalized = {
+        x: Number.isFinite(source.x) ? source.x : fallback.x,
+        y: Number.isFinite(source.y) ? source.y : fallback.y,
+        width: Number.isFinite(source.width) ? source.width : fallback.width,
+        height: Number.isFinite(source.height) ? source.height : fallback.height
+      };
+      return {
+        x: Math.max(0, Math.floor(normalized.x)),
+        y: Math.max(0, Math.floor(normalized.y)),
+        width: Math.max(1, Math.floor(normalized.width)),
+        height: Math.max(1, Math.floor(normalized.height))
+      };
+    }
+
+    function normalizeCharacterCrop(input) {
+      const normalized = input && typeof input === 'object' ? input : {};
+      const base = normalized.common || normalized.global || normalized.default || {};
+      return {
+        left: normalizeCharacterCropRect({ ...base, ...(normalized.left || {}) }, DEFAULT_CHARACTER_CROP),
+        right: normalizeCharacterCropRect({ ...base, ...(normalized.right || {}) }, DEFAULT_CHARACTER_CROP)
+      };
+    }
+
+    function isWardrobeItemEquipped(entry) {
+      if (!entry) {
+        return false;
+      }
+      const { item, targetChar, slot } = entry || {};
+      if (!item || !targetChar || !slot) {
+        return false;
+      }
+      const equipped = state.outfits[targetChar]?.[slot];
+      if (!equipped) {
+        return false;
+      }
+      if (!item) {
+        return false;
+      }
+      const itemId = item.id;
+      const itemName = item.name;
+      const equippedId = equipped.id;
+      const equippedName = equipped.name;
+      const key = item.__wardrobeKey;
+      const selectedKey = state.outfitKeys[targetChar]?.[slot];
+      if (selectedKey != null) {
+        if (itemId) {
+          return selectedKey === itemId;
+        }
+        if (itemName) {
+          return selectedKey === itemName;
+        }
+        return selectedKey === key;
+      }
+      if (equippedId && itemId) {
+        return equippedId === itemId;
+      }
+      if (equippedName && itemName) {
+        return equippedName === itemName;
+      }
+      if (key) {
+        return equipped.__wardrobeKey === key;
+      }
+      return equipped === item;
+    }
+
+    function syncWardrobeItemVisibility() {
+      wardrobeItemElements.forEach((entry) => {
+        const hidden = isWardrobeItemEquipped(entry);
+        const btn = entry.btn;
+        if (!btn) {
+          return;
+        }
+        btn.classList.toggle('is-hidden', hidden);
+        btn.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+      });
+      dumpWardrobeDebugState('sync');
+    }
+
+    async function loadJSON(path) {
+      if (IS_FILE_PROTOCOL) {
+        throw new Error('file-protocol');
+      }
+
+      const response = await fetch(path, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed ${path}: ${response.status}`);
+      }
+      return response.json();
+    }
+
+    async function tryLoadJSON(path) {
+      try {
+        return await loadJSON(path);
+      } catch {
+        return null;
+      }
+    }
+
+    function updateDataFromConfig() {
+      const outputHangerProfile = resolveOutputHangerDefaults(rawConfigOutputs || {});
+
+      wardrobes = normalizeWardrobes(
+        rawConfig?.wardrobes || DEFAULT_WARDROBES,
+        outputHangerProfile.rows
+      );
+      eventScenarios = normalizeEventScenarios(rawConfigEvents?.events || DEFAULT_EVENTS);
+      eventOutputs = normalizeEventOutputs(rawConfigOutputs?.outputs || DEFAULT_OUTPUTS);
+      hangerSettings = normalizeHangerSettings(
+        rawConfig?.hangerSize || rawConfig?.hanger || rawConfig?.hangerSettings || outputHangerProfile.global
+      );
+      characterPositions = normalizeCharacterPositions(
+        rawConfig?.characterPositions || rawConfig?.characterLayout || rawConfig?.positions || {}
+      );
+      characterCrops = normalizeCharacterCrop(
+        rawConfig?.characterCrop || rawConfig?.characterImageCrop || {}
+      );
+      const rawBackgrounds = Array.isArray(rawConfigBg) ? rawConfigBg : (rawConfigBg?.backgrounds || rawConfigBg?.items || rawConfigBg?.data || []);
+      const normalizedBackgrounds = normalizeBackgrounds(rawBackgrounds);
+      backgrounds = normalizedBackgrounds.length > 0 ? normalizedBackgrounds : DEFAULT_BACKGROUNDS;
+      state.bgIndex = backgrounds.length ? Math.max(0, Math.min(state.bgIndex, backgrounds.length - 1)) : 0;
+
+      itemById.clear();
+      itemByWardrobeKey.clear();
+      wardrobes.forEach((row) => {
+        row.items.forEach((item) => {
+          item.targetChar = row.targetChar;
+          const slotLayer = SLOT_LAYER_Z[item.slot];
+          if (!Number.isFinite(item.layer)) {
+            item.layer = Number.isFinite(slotLayer) ? slotLayer : null;
+          }
+          itemById.set(item.id, item);
+        });
+      });
+
+      outputById.clear();
+      eventOutputs.forEach((output) => outputById.set(output.id, output));
+
+      dataState.loaded = true;
+    }
+
+    function applyHangerSettings() {
+      const root = document.documentElement;
+      root.style.setProperty('--hanger-width', hangerSettings.width);
+      root.style.setProperty('--hanger-height', hangerSettings.height);
+    }
+
+    async function loadGameConfig() {
+      const wardrobeData = await tryLoadJSON('data/outfits.json') || await tryLoadJSON('data/wardrobes.json');
+      const eventData = await tryLoadJSON('data/events.json');
+      const outputData = await tryLoadJSON('data/outputs.json');
+      const backgroundData = await tryLoadJSON('data/backgrounds.json') || await tryLoadJSON('data/background.json');
+
+      rawConfig = wardrobeData;
+      rawConfigEvents = eventData;
+      rawConfigOutputs = outputData;
+      rawConfigBg = backgroundData;
+      updateDataFromConfig();
+    }
+
+    const stageArea = document.getElementById('stage');
+    const backgroundLayer = document.getElementById('backgroundLayer');
+    const bgId = document.getElementById('bgId');
+    const statusBar = document.getElementById('statusBar');
+    const undoBtn = document.getElementById('undoBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const bgPrev = document.getElementById('bgPrev');
+    const bgNext = document.getElementById('bgNext');
+    const row1 = document.getElementById('row-1');
+    const row2 = document.getElementById('row-2');
+    const eventOverlay = document.getElementById('eventOverlay');
+    const dialogText = document.getElementById('dialogText');
+    const dialogFlash = document.getElementById('dialogFlash');
+
+    if (!CAN_SET_CORS && statusBar) {
+      statusBar.textContent = '현재 브라우저가 file:/// 접근에서 CORS/CANVAS 제한을 적용하고 있습니다. localhost 서버로 실행하면 드래그/투명 처리 동작이 안정적입니다.';
+    }
+
+    const characters = {
+      left: {
+        wrap: document.querySelector('[data-char="left"]'),
+        layers: {},
+        hitbox: null,
+        zoneEls: null,
+        baseImage: null
+      },
+      right: {
+        wrap: document.querySelector('[data-char="right"]'),
+        layers: {},
+        hitbox: null,
+        zoneEls: null,
+        baseImage: null
+      }
+    };
+    const eventState = { baseBackup: { left: null, right: null } };
+    let dialogFlashTimer = null;
+    let dialogTypeTimer = null;
+    let isTyping = false;
+    const DIALOG_FLASH_CYCLES = 5;
+    const DIALOG_FLASH_INTERVAL_MS = 300;
+    const DIALOG_FLASH_VISIBLE_OPACITY = 0.65;
+    const DIALOG_TYPEWRITER_INTERVAL_MS = 28;
+
+    const imageCache = new Map();
+
+    function buildSVGIris(baseColor, toneColor, label = 'EVENT') {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="260" height="390" viewBox="0 0 260 390">
+          <rect x="22" y="42" width="216" height="318" rx="108" fill="${baseColor}" />
+          <ellipse cx="130" cy="56" rx="60" ry="45" fill="${toneColor}" />
+          <rect x="85" y="90" width="90" height="88" rx="45" fill="${baseColor}" />
+          <rect x="70" y="176" width="118" height="112" rx="58" fill="${baseColor}" />
+          <rect x="58" y="292" width="142" height="48" rx="24" fill="#1e293b"/>
+          <circle cx="100" cy="66" r="8" fill="#111827"/>
+          <circle cx="160" cy="66" r="8" fill="#111827"/>
+          <rect x="104" y="82" width="52" height="6" fill="#111827"/>
+          <text x="50%" y="92%" text-anchor="middle" fill="white" font-size="20" font-family="Arial, sans-serif" opacity="0.95">${label}</text>
+        </svg>
+      `;
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function makeFallback(label, slot, color) {
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1500" viewBox="0 0 1000 1500">
+          <rect x="0" y="0" width="1000" height="1500" fill="${color}"/>
+          <rect x="30" y="30" width="940" height="1440" fill="rgba(255,255,255,0.16)"/>
+          <text x="50%" y="52%" text-anchor="middle" fill="white" font-size="80" font-family="Arial, sans-serif">${slot.toUpperCase()}</text>
+          <text x="50%" y="63%" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="64" font-family="Arial, sans-serif">${label}</text>
+        </svg>
+      `;
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
+
+    function parseAndNormalizeColor(data) {
+      const dr = data[0] - CHROMA_COLOR.r;
+      const dg = data[1] - CHROMA_COLOR.g;
+      const db = data[2] - CHROMA_COLOR.b;
+      const dist = dr * dr + dg * dg + db * db;
+      if (dist <= CHROMA_TOLERANCE_SQ && data[3] > 0) {
+        data[3] = 0;
+      }
+    }
+
+    function processImageWithChroma(src, { trim = ASSET_TRIM_PADDING, applyChroma = true, cropRect = null } = {}) {
+      const crop = cropRect && typeof cropRect === 'object'
+        ? `${Math.floor(cropRect.x || 0)},${Math.floor(cropRect.y || 0)},${Math.floor(cropRect.width || 0)},${Math.floor(cropRect.height || 0)}`
+        : 'nocrop';
+      const cacheKey = `${src}::trim=${trim}::chroma=${applyChroma}::crop=${crop}`;
+      if (imageCache.has(cacheKey)) {
+        return Promise.resolve(imageCache.get(cacheKey));
+      }
+
+      return new Promise((resolve) => {
+        const fallback = src || makeFallback('NoImage', 'item', '#475569');
+        if (!CAN_SET_CORS) {
+          imageCache.set(cacheKey, src);
+          resolve(src);
+          return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          const naturalWidth = Math.max(img.naturalWidth || ASSET_BASE_SIZE.width, 1);
+          const naturalHeight = Math.max(img.naturalHeight || ASSET_BASE_SIZE.height, 1);
+          const hasCropRect = cropRect && Number.isFinite(cropRect.x) && Number.isFinite(cropRect.y) && Number.isFinite(cropRect.width) && Number.isFinite(cropRect.height);
+          const trimX = hasCropRect ? 0 : Math.max(0, Math.min(trim, Math.floor(naturalWidth / 2)));
+          const trimY = hasCropRect ? 0 : Math.max(0, Math.min(trim, Math.floor(naturalHeight / 2)));
+          const cropWidth = hasCropRect
+            ? Math.min(Math.max(1, Math.floor(cropRect.width)), Math.max(1, naturalWidth - Math.max(0, Math.floor(cropRect.x))))
+            : Math.max(1, naturalWidth - trimX * 2);
+          const cropHeight = hasCropRect
+            ? Math.min(Math.max(1, Math.floor(cropRect.height)), Math.max(1, naturalHeight - Math.max(0, Math.floor(cropRect.y))))
+            : Math.max(1, naturalHeight - trimY * 2);
+          const cropCanvas = document.createElement('canvas');
+          const finalCanvas = document.createElement('canvas');
+          const cropCtx = cropCanvas.getContext('2d');
+          const finalCtx = finalCanvas.getContext('2d');
+          const srcX = hasCropRect ? Math.max(0, Math.floor(cropRect.x)) : -trimX;
+          const srcY = hasCropRect ? Math.max(0, Math.floor(cropRect.y)) : -trimY;
+          const srcW = hasCropRect ? Math.max(1, Math.min(cropWidth, naturalWidth - srcX)) : naturalWidth;
+          const srcH = hasCropRect ? Math.max(1, Math.min(cropHeight, naturalHeight - srcY)) : naturalHeight;
+          cropCanvas.width = cropWidth;
+          cropCanvas.height = cropHeight;
+          finalCanvas.width = cropWidth;
+          finalCanvas.height = cropHeight;
+
+          try {
+            cropCtx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, cropWidth, cropHeight);
+            if (applyChroma) {
+              const imageData = cropCtx.getImageData(0, 0, cropWidth, cropHeight);
+              const d = imageData.data;
+              for (let i = 0; i < d.length; i += 4) {
+                parseAndNormalizeColor(d.subarray(i, i + 4));
+              }
+              cropCtx.putImageData(imageData, 0, 0);
+            }
+            finalCtx.drawImage(cropCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
+          } catch {
+            imageCache.set(cacheKey, fallback);
+            resolve(fallback);
+            return;
+          }
+
+          const out = finalCanvas.toDataURL('image/png');
+          imageCache.set(cacheKey, out);
+          resolve(out);
+        };
+
+        img.onerror = () => {
+          imageCache.set(cacheKey, fallback);
+          resolve(fallback);
+        };
+
+        if (CAN_SET_CORS) {
+          img.crossOrigin = 'anonymous';
+        }
+
+        img.src = src;
+      });
+    }
+
+    function normalizeItem(item) {
+      if (item._normalizedImagePromise) {
+        return item._normalizedImagePromise;
+      }
+
+      const source = item.src || makeFallback(item.name, item.slot, item.color || '#64748b');
+      item._normalizedImagePromise = processImageWithChroma(source, { trim: 0, applyChroma: true })
+        .then((result) => {
+          item.image = result;
+          item.imageReady = true;
+          return item;
+        })
+        .catch(() => {
+          item.image = makeFallback(item.name, item.slot, item.color || '#64748b');
+          item.imageReady = true;
+          return item;
+        });
+      return item._normalizedImagePromise;
+    }
+
+    function normalizeWardrobePreview(item) {
+      if (item._wardrobeImagePromise) {
+        return item._wardrobeImagePromise;
+      }
+
+      const source = item.src || makeFallback(item.name, item.slot, item.color || '#64748b');
+      item._wardrobeImagePromise = processImageWithChroma(source, { trim: 0, applyChroma: true })
+        .then((result) => {
+          item.previewImage = result;
+          return item;
+        })
+        .catch(() => {
+          item.previewImage = makeFallback(item.name, item.slot, item.color || '#64748b');
+          return item;
+        });
+
+      return item._wardrobeImagePromise;
+    }
+
+    async function applyBaseImages() {
+      const baseLeft = document.getElementById('base-left');
+      const baseRight = document.getElementById('base-right');
+      const leftChar = characters.left;
+      const rightChar = characters.right;
+      baseLeft.src = await processImageWithChroma(CHARACTER_ASSETS.left, { applyChroma: false, trim: 0, cropRect: characterCrops.left || DEFAULT_CHARACTER_CROP });
+      baseRight.src = await processImageWithChroma(CHARACTER_ASSETS.right, { applyChroma: false, trim: 0, cropRect: characterCrops.right || DEFAULT_CHARACTER_CROP });
+      leftChar.baseImage = baseLeft;
+      rightChar.baseImage = baseRight;
+
+      baseLeft.onerror = () => {
+        baseLeft.onerror = null;
+        baseLeft.src = buildSVGIris('#94a3b8', '#fca5a5');
+      };
+      baseRight.onerror = () => {
+        baseRight.onerror = null;
+        baseRight.src = buildSVGIris('#64748b', '#93c5fd');
+      };
+    }
+
+    function applySlotLayoutToCharacter(charId) {
+      const char = characters[charId];
+      char.wrap.style.width = `${CHARACTER_VIEW_WIDTH}px`;
+      char.wrap.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+
+      const baseImage = char.wrap.querySelector('.char-base');
+      baseImage.style.width = `${CHARACTER_VIEW_WIDTH}px`;
+      baseImage.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+
+      char.hitbox.style.width = `${CHARACTER_VIEW_WIDTH}px`;
+      char.hitbox.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+
+      char.zoneEls.forEach((zone) => {
+        const cfg = SLOT_LAYOUT[zone.dataset.slot];
+        zone.style.left = `${cfg.left}px`;
+        zone.style.top = `${cfg.top}px`;
+        zone.style.width = `${cfg.w}px`;
+        zone.style.height = `${cfg.h}px`;
+      });
+    }
+
+    function applySlotLayout() {
+      ['left', 'right'].forEach((charId) => {
+        applySlotLayoutToCharacter(charId);
+      });
+    }
+
+    function applyCharacterPositions() {
+      Object.entries(characters).forEach(([charId, char]) => {
+        const layout = characterPositions[charId] || DEFAULT_CHAR_POSITIONS[charId];
+        const x = Number.isFinite(layout?.x) ? layout.x : 0;
+        const y = Number.isFinite(layout?.y) ? layout.y : 0;
+        char.wrap.style.setProperty('--char-offset-x', `${x}px`);
+        char.wrap.style.setProperty('--char-offset-y', `${y}px`);
+      });
+    }
+
+    function applyWardrobePreviewVars() {
+      const root = document.documentElement;
+      root.style.setProperty('--wardrobe-item-width', `${WARDROBE_PREVIEW_SIZE.width}px`);
+      root.style.setProperty('--wardrobe-item-height', `${WARDROBE_PREVIEW_SIZE.height}px`);
+    }
+
+    async function setupCharacters() {
+      ['left', 'right'].forEach((charId) => {
+        const char = characters[charId];
+        char.wrap.querySelectorAll('.clothing-layer').forEach((layer) => {
+          char.layers[layer.dataset.slot] = layer;
+        });
+        char.hitbox = char.wrap.querySelector('.character-hitbox');
+        char.zoneEls = Array.from(char.wrap.querySelectorAll('.drop-zone'));
+        char.baseImage = char.wrap.querySelector('.char-base');
+      });
+      await applyBaseImages();
+      applySlotLayout();
+      applyCharacterPositions();
+      await applyBackground();
+    }
+
+    function preloadBackgroundImage(src) {
+      if (!src) {
+        return Promise.resolve(false);
+      }
+      const cached = backgroundImageCache.get(src);
+      if (cached !== undefined) {
+        return cached;
+      }
+
+      const promise = new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = src;
+      });
+      backgroundImageCache.set(src, promise);
+      return promise;
+    }
+
+    async function applyBackground() {
+      const theme = backgrounds[state.bgIndex];
+      const fallbackStyle = theme?.style || 'none';
+      if (!theme || !theme.image) {
+        backgroundLayer.style.background = fallbackStyle;
+        bgId.textContent = theme ? theme.id : '';
+        return;
+      }
+
+      const src = theme.image;
+      const resolved = await preloadBackgroundImage(src);
+      if (!resolved) {
+        backgroundLayer.style.background = fallbackStyle;
+        backgroundLayer.style.backgroundColor = 'transparent';
+        bgId.textContent = theme.id;
+        return;
+      }
+
+      const hasStyle = fallbackStyle && fallbackStyle !== 'none';
+      const layers = hasStyle ? [`url("${src}")`, fallbackStyle] : [`url("${src}")`];
+      backgroundLayer.style.background = layers.join(', ');
+      backgroundLayer.style.backgroundSize = hasStyle ? 'cover, cover' : 'cover';
+      backgroundLayer.style.backgroundPosition = hasStyle ? 'center, center' : 'center';
+      backgroundLayer.style.backgroundRepeat = 'no-repeat';
+      backgroundLayer.style.backgroundBlendMode = 'normal';
+      backgroundLayer.style.backgroundColor = 'transparent';
+      backgroundLayer.style.backgroundAttachment = 'local';
+      bgId.textContent = theme.id;
+    }
+
+    function clearLayer(charId, slot) {
+      const layer = characters[charId].layers[slot];
+      layer.style.display = 'none';
+      layer.removeAttribute('src');
+    }
+
+    function applyClothing(charId, slot, item) {
+      if (!item) {
+        clearLayer(charId, slot);
+        return;
+      }
+      const cfg = SLOT_LAYOUT[slot];
+      const layer = characters[charId].layers[slot];
+      const itemLayer = resolveItemLayer(item);
+      const appliedLayer = Number.isFinite(itemLayer) ? itemLayer : cfg.z;
+      layer.style.left = '0px';
+      layer.style.top = '0px';
+      layer.style.width = `${CHARACTER_VIEW_WIDTH}px`;
+      layer.style.height = `${CHARACTER_VIEW_HEIGHT}px`;
+      layer.style.zIndex = `${Math.min(OUTPUT_LAYER_LIMIT.max, Math.max(OUTPUT_LAYER_LIMIT.min, appliedLayer))}`;
+      layer.src = item.image;
+      layer.style.display = 'block';
+    }
+
+    async function equipItem(charId, slot, item) {
+      const prev = state.outfits[charId][slot];
+      if (prev && prev.id === item.id) {
+        return;
+      }
+      const normalized = await normalizeItem(item);
+      const targetKey = normalized.id || normalized.name || null;
+      const prevKey = prev?.id || prev?.name || null;
+      if (prevKey != null && targetKey != null && prevKey === targetKey) {
+        return;
+      }
+
+      const itemLayer = resolveItemLayer(normalized);
+      const conflicts = findLayerConflicts(charId, itemLayer, slot);
+
+      if (conflicts.length > 0) {
+        conflicts.forEach((conflict) => {
+          state.outfits[charId][conflict.slot] = null;
+          state.outfitKeys[charId][conflict.slot] = null;
+          clearLayer(charId, conflict.slot);
+        });
+      }
+
+      state.history.push({
+        charId,
+        updates: [
+          { slot, prevItem: prev, prevKey },
+          ...conflicts.map((conflict) => ({
+            slot: conflict.slot,
+            prevItem: conflict.prevItem,
+            prevKey: conflict.prevItem ? (conflict.prevItem.id || conflict.prevItem.name || null) : null
+          }))
+        ]
+      });
+      state.outfits[charId][slot] = normalized;
+      state.outfitKeys[charId][slot] = targetKey;
+      applyClothing(charId, slot, normalized);
+      statusBar.textContent = `${charId === 'left' ? '왼쪽' : '오른쪽'} 캐릭터에 "${normalized.name}"을(를) 착용했습니다.`;
+      dumpWardrobeDebugState(`equip:${charId}:${slot}`);
+      syncWardrobeItemVisibility();
+      evaluateEvent();
+    }
+
+    function undo() {
+      if (state.history.length === 0) {
+        statusBar.textContent = '되돌릴 기록이 없습니다.';
+        return;
+      }
+      const action = state.history.pop();
+      if (Array.isArray(action.updates)) {
+        for (let i = 0; i < action.updates.length; i += 1) {
+          const update = action.updates[i];
+          state.outfits[action.charId][update.slot] = update.prevItem;
+          state.outfitKeys[action.charId][update.slot] = update.prevKey;
+          applyClothing(action.charId, update.slot, update.prevItem);
+        }
+      } else {
+        state.outfits[action.charId][action.slot] = action.prevItem;
+        state.outfitKeys[action.charId][action.slot] = action.prevKey;
+        applyClothing(action.charId, action.slot, action.prevItem);
+      }
+      statusBar.textContent = '한 단계 되돌렸습니다.';
+      dumpWardrobeDebugState('undo');
+      syncWardrobeItemVisibility();
+      evaluateEvent();
+    }
+
+    function resetAll() {
+      state.history = [];
+      state.currentEvent = null;
+      ['left', 'right'].forEach((charId) => {
+        SLOT_ORDER.forEach((slot) => {
+          state.outfits[charId][slot] = null;
+          state.outfitKeys[charId][slot] = null;
+          clearLayer(charId, slot);
+        });
+      });
+      statusBar.textContent = '전체 리셋 완료.';
+      dumpWardrobeDebugState('reset');
+      syncWardrobeItemVisibility();
+      closeEvent();
+      evaluateEvent();
+    }
+
+    async function hydrateWardrobe() {
+      const rows = [row1, row2];
+      const scale = WARDROBE_PREVIEW_SIZE.height / ASSET_BASE_SIZE.height;
+      wardrobeItemElements.clear();
+      itemByWardrobeKey.clear();
+      rows.forEach((row) => {
+        row.textContent = '';
+        row.style.removeProperty('--row-hanger-width');
+        row.style.removeProperty('--row-hanger-height');
+      });
+
+      wardrobes.forEach((rowData, idx) => {
+        const row = rows[idx];
+        const rowHanger = normalizeHangerSettings(rowData.hanger);
+        row.style.setProperty('--row-hanger-width', rowHanger.width);
+        row.style.setProperty('--row-hanger-height', rowHanger.height);
+        const title = document.createElement('div');
+        const rail = document.createElement('div');
+        const list = document.createElement('div');
+
+        title.className = 'hanger-title';
+        title.textContent = rowData.title;
+
+        rail.className = 'hanger-line';
+
+        list.className = 'hanger-items';
+
+        rowData.items.forEach((item, itemIndex) => {
+          const itemKey = `${rowData.targetChar}|${idx}|${itemIndex}|${item.id || item.name || item.src || 'item'}`;
+          item.__wardrobeKey = itemKey;
+          itemByWardrobeKey.set(itemKey, item);
+          item.image = makeFallback(item.name, item.slot, item.color || '#64748b');
+          const btn = document.createElement('button');
+          btn.dataset.itemKey = itemKey;
+          const img = document.createElement('img');
+          btn.type = 'button';
+          btn.className = 'wardrobe-item is-image-only';
+          if (item.align === 'right') {
+            btn.classList.add('align-right');
+          }
+          btn.draggable = true;
+          img.src = item.image;
+          img.alt = item.name;
+          img.style.width = `${ASSET_BASE_SIZE.width * scale}px`;
+          img.style.height = `${ASSET_BASE_SIZE.height * scale}px`;
+          const offset = item.previewOffset || WARDROBE_PREVIEW_OFFSET_DEFAULT;
+          const alignMultiplier = item.align === 'right' ? -1 : 1;
+          img.style.left = `${offset.x * scale * alignMultiplier}px`;
+          img.style.top = `${offset.y * scale + WARDROBE_PREVIEW_VERTICAL_BIAS}px`;
+          img.dataset.offsetX = String(offset.x * scale);
+          img.dataset.offsetY = String(offset.y * scale + WARDROBE_PREVIEW_VERTICAL_BIAS);
+          btn.appendChild(img);
+
+          normalizeWardrobePreview(item).then((loaded) => {
+            const previewImage = btn.querySelector('img');
+            previewImage.src = loaded.previewImage || item.image;
+          });
+
+          btn.addEventListener('dragstart', (e) => {
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('application/json', JSON.stringify({ id: item.id, itemKey }));
+            statusBar.textContent = `"${item.name}"를 캐릭터로 드래그 중...`;
+            const previewImage = btn.querySelector('img');
+            clearDragGhost();
+            if (previewImage) {
+              const ghost = previewImage.cloneNode(true);
+              ghost.style.position = 'fixed';
+              ghost.style.left = '-9999px';
+              ghost.style.top = '-9999px';
+              ghost.style.right = 'auto';
+              ghost.style.bottom = 'auto';
+              ghost.style.transform = 'none';
+              ghost.style.margin = '0';
+              ghost.style.width = `${DRAG_PREVIEW_SIZE.width}px`;
+              ghost.style.height = `${DRAG_PREVIEW_SIZE.height}px`;
+              ghost.style.objectFit = 'contain';
+              ghost.style.pointerEvents = 'none';
+              ghost.style.left = '-9999px';
+              ghost.style.border = '0';
+              ghost.style.background = 'transparent';
+              ghost.style.opacity = '0.95';
+              ghost.style.zIndex = '-1';
+              document.body.appendChild(ghost);
+              activeDragGhost = ghost;
+              e.dataTransfer.setDragImage(ghost, DRAG_PREVIEW_SIZE.width / 2, DRAG_PREVIEW_SIZE.height / 2);
+            }
+          });
+
+          btn.addEventListener('dragend', () => {
+            clearDropHints();
+            clearDragGhost();
+          });
+          btn.addEventListener('touchstart', (e) => {
+            const touch = e.touches && e.touches[0];
+            if (!touch) {
+              return;
+            }
+            startTouchDrag(item, touch);
+          }, { passive: false });
+          btn.addEventListener('touchmove', (e) => {
+            if (!activeTouchDrag) {
+              return;
+            }
+            const touch = e.touches && e.touches[0];
+            if (!touch) {
+              return;
+            }
+            activeTouchDrag.x = touch.clientX;
+            activeTouchDrag.y = touch.clientY;
+            const deltaX = activeTouchDrag.x - activeTouchDrag.startX;
+            const deltaY = activeTouchDrag.y - activeTouchDrag.startY;
+            const distance = Math.sqrt((deltaX * deltaX) + (deltaY * deltaY));
+            if (!activeTouchDrag.dragging && distance >= TOUCH_DRAG_THRESHOLD) {
+              activeTouchDrag.dragging = true;
+            }
+            if (!activeTouchDrag.dragging) {
+              return;
+            }
+            e.preventDefault();
+            const target = getDropTarget(touch.clientX, touch.clientY);
+            showTargetHint(target);
+          }, { passive: false });
+          btn.addEventListener('touchend', (e) => {
+            if (!activeTouchDrag) {
+              return;
+            }
+            if (!activeTouchDrag.dragging) {
+              clearTouchDrag();
+              return;
+            }
+            e.preventDefault();
+            void finishTouchDrag(e);
+          }, { passive: false });
+          btn.addEventListener('touchcancel', () => {
+            clearTouchDrag();
+          }, { passive: true });
+          list.appendChild(btn);
+          wardrobeItemElements.set(itemKey, { btn, item, targetChar: rowData.targetChar, slot: item.slot });
+        });
+
+        row.appendChild(title);
+        row.appendChild(rail);
+        row.appendChild(list);
+      });
+      dumpWardrobeDebugState('hydrate-complete');
+      syncWardrobeItemVisibility();
+    }
+
+    function clearDropHints() {
+      Object.values(characters).forEach((char) => {
+        char.hitbox.classList.remove('active');
+        char.zoneEls.forEach((z) => z.classList.remove('active'));
+      });
+    }
+
+    function clearDragGhost() {
+      if (activeDragGhost) {
+        activeDragGhost.remove();
+        activeDragGhost = null;
+      }
+    }
+
+    function getDropTarget(clientX, clientY) {
+      for (const charId of ['left', 'right']) {
+        const rect = characters[charId].wrap.getBoundingClientRect();
+        if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+          continue;
+        }
+        return { charId };
+      }
+      return null;
+    }
+
+    function getDropTargetFromTouch(event) {
+      const touch = event.changedTouches && event.changedTouches[0]
+        ? event.changedTouches[0]
+        : event.touches && event.touches[0]
+          ? event.touches[0]
+          : null;
+      if (!touch) {
+        return null;
+      }
+      return getDropTarget(touch.clientX, touch.clientY);
+    }
+
+    function clearTouchDrag() {
+      activeTouchDrag = null;
+      clearDropHints();
+      clearDragGhost();
+    }
+
+    function startTouchDrag(item, touch) {
+      if (!touch) {
+        return;
+      }
+      activeTouchDrag = {
+        item,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        x: touch.clientX,
+        y: touch.clientY,
+        dragging: false
+      };
+      statusBar.textContent = `"${item.name}"를 손가락으로 끌어 캐릭터 상단 창 위에 놓아주세요.`;
+    }
+
+    async function finishTouchDrag(event) {
+      if (!activeTouchDrag) {
+        return;
+      }
+      let target = null;
+      const touch = event.changedTouches && event.changedTouches[0]
+        ? event.changedTouches[0]
+        : null;
+      if (touch) {
+        target = getDropTarget(touch.clientX, touch.clientY);
+      } else {
+        target = getDropTarget(activeTouchDrag.x, activeTouchDrag.y);
+      }
+      const sourceItem = activeTouchDrag.item;
+      clearTouchDrag();
+
+      if (!target) {
+        statusBar.textContent = '드래그 위치가 캐릭터 영역 밖입니다.';
+        return;
+      }
+      if (!sourceItem) {
+        statusBar.textContent = '알 수 없는 아이템입니다.';
+        return;
+      }
+      if (sourceItem.targetChar !== target.charId) {
+        statusBar.textContent = '이 행거 옷은 해당 캐릭터에게만 착용 가능합니다.';
+        return;
+      }
+      await equipItem(target.charId, sourceItem.slot, sourceItem);
+    }
+
+    function showTargetHint(target) {
+      clearDropHints();
+      if (!target) {
+        return;
+      }
+      const char = characters[target.charId];
+      char.hitbox.classList.add('active');
+    }
+
+    let activeEvent = null;
+    let sceneIndex = 0;
+
+    function matchesEventCondition(eventDef, outfits) {
+      const rules = Array.isArray(eventDef.conditions) ? eventDef.conditions : [];
+      if (rules.length === 0) {
+        return false;
+      }
+
+      return rules.every((rule) => {
+        const charState = outfits[rule.char];
+        if (!charState) {
+          return false;
+        }
+        const current = typeof rule.slot === 'string' && SLOT_ORDER.includes(rule.slot)
+          ? charState[rule.slot]
+          : rule.slot
+            ? charState[rule.slot]
+            : Object.values(charState).find((slotItem) => slotItem && slotItem.id === rule.id);
+        if (!current) {
+          return false;
+        }
+        if (rule.id && current.id !== rule.id) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    function applyCharacterArtForEvent(enabled) {
+      const leftBase = characters.left.baseImage;
+      const rightBase = characters.right.baseImage;
+      if (!leftBase || !rightBase) {
+        return;
+      }
+
+      if (enabled) {
+        if (eventState.baseBackup.left == null && eventState.baseBackup.right == null) {
+          eventState.baseBackup.left = leftBase.src;
+          eventState.baseBackup.right = rightBase.src;
+        }
+        return;
+      }
+
+      leftBase.src = eventState.baseBackup.left || CHARACTER_ASSETS.left;
+      rightBase.src = eventState.baseBackup.right || CHARACTER_ASSETS.right;
+      eventState.baseBackup.left = null;
+      eventState.baseBackup.right = null;
+    }
+
+    function applyCharacterArtFromScene(sceneCharacterArt) {
+      if (!activeEvent) {
+        return;
+      }
+
+      const leftBase = characters.left.baseImage;
+      const rightBase = characters.right.baseImage;
+      if (!leftBase || !rightBase) {
+        return;
+      }
+
+      if (!sceneCharacterArt || typeof sceneCharacterArt !== 'object') {
+        return;
+      }
+
+      if (typeof sceneCharacterArt.left === 'string' && sceneCharacterArt.left.trim()) {
+        leftBase.src = sceneCharacterArt.left;
+      }
+      if (typeof sceneCharacterArt.right === 'string' && sceneCharacterArt.right.trim()) {
+        rightBase.src = sceneCharacterArt.right;
+      }
+    }
+
+
+    function getEventOutput(eventDef) {
+      if (eventDef.outputId && outputById.has(eventDef.outputId)) {
+        return outputById.get(eventDef.outputId);
+      }
+
+      return {
+        characterArt: eventDef.characterArt || null,
+        scenes: Array.isArray(eventDef.scenes) ? eventDef.scenes : []
+      };
+    }
+
+    function evaluateEvent() {
+      const matched = eventScenarios.find((scenario) => matchesEventCondition(scenario, state.outfits));
+      if (!matched) {
+        state.currentEvent = null;
+        if (activeEvent) {
+          closeEvent();
+        }
+        return;
+      }
+      if (state.currentEvent === matched.id && activeEvent) {
+        return;
+      }
+      startEvent(matched);
+    }
+
+    function startEvent(scenario) {
+      const resolvedOutput = getEventOutput(scenario);
+      activeEvent = {
+        ...scenario,
+        characterArt: resolvedOutput.characterArt || scenario.characterArt || null,
+        scenes: Array.isArray(resolvedOutput.scenes) && resolvedOutput.scenes.length > 0
+          ? resolvedOutput.scenes
+          : scenario.scenes || []
+      };
+      state.currentEvent = scenario.id;
+      sceneIndex = 0;
+      renderScene();
+      applyCharacterArtForEvent(true);
+      applyCharacterArtFromScene(activeEvent.characterArt);
+      eventOverlay.classList.add('show');
+    }
+
+    function renderScene() {
+      const scene = activeEvent.scenes[sceneIndex];
+      const speaker = scene.speaker || '';
+      const text = scene.text || '';
+      const fullText = `${speaker}\n${text}`;
+
+      applyCharacterArtFromScene(scene.characterArt);
+
+      if (isTyping) {
+        stopDialogTyping();
+      }
+      if (text.length === 0) {
+        dialogText.textContent = fullText;
+        isTyping = false;
+        playDialogFlash();
+        return;
+      }
+
+      isTyping = true;
+      dialogText.textContent = `${speaker}\n`;
+      playDialogFlash();
+      let index = 0;
+      dialogTypeTimer = setInterval(() => {
+        index += 1;
+        dialogText.textContent = `${speaker}\n${text.slice(0, index)}`;
+        if (index >= text.length) {
+          stopDialogTyping(true);
+        }
+      }, DIALOG_TYPEWRITER_INTERVAL_MS);
+    }
+
+    function stopDialogFlash() {
+      if (dialogFlashTimer) {
+        clearInterval(dialogFlashTimer);
+        dialogFlashTimer = null;
+      }
+      if (dialogFlash) {
+        dialogFlash.style.opacity = '0';
+      }
+    }
+
+    function playDialogFlash() {
+      if (!dialogFlash) {
+        return;
+      }
+      stopDialogFlash();
+      let tick = 0;
+      dialogFlashTimer = setInterval(() => {
+        tick += 1;
+        const visible = tick % 2 === 1;
+        dialogFlash.style.opacity = visible ? `${DIALOG_FLASH_VISIBLE_OPACITY}` : '0';
+        if (tick >= DIALOG_FLASH_CYCLES) {
+          clearInterval(dialogFlashTimer);
+          dialogFlashTimer = null;
+          stopDialogFlash();
+        }
+      }, DIALOG_FLASH_INTERVAL_MS);
+    }
+
+    function stopDialogTyping(keepText = false) {
+      if (dialogTypeTimer) {
+        clearInterval(dialogTypeTimer);
+        dialogTypeTimer = null;
+      }
+      if (!isTyping) {
+        return;
+      }
+      isTyping = false;
+      if (!keepText && activeEvent) {
+        const scene = activeEvent.scenes[sceneIndex];
+        dialogText.textContent = `${scene.speaker || ''}\n${scene.text || ''}`;
+      }
+      if (!activeEvent) {
+        return;
+      }
+      stopDialogFlash();
+    }
+
+    function closeEvent() {
+      activeEvent = null;
+      sceneIndex = 0;
+      eventOverlay.classList.remove('show');
+      stopDialogTyping(true);
+      stopDialogFlash();
+      applyCharacterArtForEvent(false);
+    }
+
+    function nextScene() {
+      if (!activeEvent) {
+        return;
+      }
+      if (isTyping) {
+        stopDialogTyping(false);
+        return;
+      }
+      sceneIndex += 1;
+      if (sceneIndex >= activeEvent.scenes.length) {
+        closeEvent();
+        return;
+      }
+      renderScene();
+    }
+
+    function bindEvents() {
+      bgPrev.addEventListener('click', async () => {
+        state.bgIndex = (state.bgIndex - 1 + backgrounds.length) % backgrounds.length;
+        await applyBackground();
+      });
+      bgNext.addEventListener('click', async () => {
+        state.bgIndex = (state.bgIndex + 1) % backgrounds.length;
+        await applyBackground();
+      });
+      undoBtn.addEventListener('click', undo);
+      resetBtn.addEventListener('click', resetAll);
+
+      stageArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!e.dataTransfer.types.includes('application/json')) {
+          return;
+        }
+        const target = getDropTarget(e.clientX, e.clientY);
+        if (!target) {
+          e.dataTransfer.dropEffect = 'none';
+          clearDropHints();
+          return;
+        }
+        e.dataTransfer.dropEffect = 'copy';
+        showTargetHint(target);
+      });
+
+      stageArea.addEventListener('dragleave', () => {
+        clearDropHints();
+      });
+
+      stageArea.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const raw = e.dataTransfer.getData('application/json');
+        const target = getDropTarget(e.clientX, e.clientY);
+        clearDropHints();
+
+        if (!raw || !target) {
+          statusBar.textContent = 'Hitbox 밖입니다. 옷은 옷장에서 원위치로 돌아갑니다.';
+          return;
+        }
+
+        const payload = JSON.parse(raw);
+        const sourceItem = itemByWardrobeKey.get(payload.itemKey) || itemById.get(payload.id);
+        if (!sourceItem) {
+          statusBar.textContent = '알 수 없는 아이템입니다.';
+          return;
+        }
+        if (sourceItem.targetChar !== target.charId) {
+          statusBar.textContent = '이 행거 옷은 해당 캐릭터에게만 착용 가능합니다.';
+          return;
+        }
+
+        await equipItem(target.charId, sourceItem.slot, sourceItem);
+      });
+
+      eventOverlay.addEventListener('click', () => {
+        if (activeEvent) {
+          nextScene();
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (!activeEvent) {
+          return;
+        }
+        if (e.key === 'Escape') {
+          closeEvent();
+        }
+        if (e.key === 'Enter' || e.key === ' ') {
+          nextScene();
+        }
+      });
+    }
+
+    async function initializeGame() {
+      await loadGameConfig();
+      applyHangerSettings();
+      applyWardrobePreviewVars();
+      await setupCharacters();
+      await hydrateWardrobe();
+      bindEvents();
+      if (IS_FILE_PROTOCOL) {
+        statusBar.textContent = 'file:/// 실행에서는 JSON/투명도 처리(chroma key)가 제한됩니다. http://localhost:8000 로 실행하세요.';
+      }
+    }
+
+    initializeGame();
+  </script>
+</body>
+</html>
