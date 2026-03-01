@@ -20,7 +20,7 @@
         "height": "200px"
       },
       "items": [
-        { "id": "left_white_shirt", "name": "white_shirt", "color": "#334155", "src": "assets/clothes/left_white_shirt.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_event_A_C", "name": "left_event_A_C", "color": "#334155", "src": "assets/clothes/left_event_A_C.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "left_white_shirt_B", "name": "white_shirt_B", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "left_white_shirt_C", "name": "white_shirt_C", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "left_white_shirt_D", "name": "white_shirt_D", "color": "#334155", "src": "assets/clothes/left_white_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
@@ -42,7 +42,7 @@
         "height": "200px"
       },
       "items": [
-        { "id": "right_blue_shirt", "name": "blue_shirt", "color": "#65a30d", "src": "assets/clothes/right_blue_shirt.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "right_event_A_C", "name": "right_event_A_C", "color": "#65a30d", "src": "assets/clothes/right_event_A_C.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "right_blue_shirt_B", "name": "blue_shirt_B", "color": "#65a30d", "src": "assets/clothes/right_blue_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "right_blue_shirt_Hidden", "name": "blue_shirt_Hidden", "align": "right", "color": "#65a30d", "src": "assets/clothes/right_blue_shirt_B.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } }
       ]
