@@ -20,7 +20,7 @@
         "height": "200px"
       },
       "items": [
-        { "id": "left_event_A_C", "name": "left_event_A_C", "color": "#334155", "src": "assets/clothes/left_event_A_C.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
+        { "id": "left_event_A_C", "name": "left_event_A_C", "color": "#334155", "src": "assets/clothes/left_event_A_C.png", "layer": 25, "previewOffset": { "x": -362, "y": -791 } },
         { "id": "left_black", "name": "left_black", "color": "#334155", "src": "assets/clothes/left_black.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "left_event_B_C", "name": "left_event_B_C", "color": "#334155", "src": "assets/clothes/left_event_B_C.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
         { "id": "left_event_C_C", "name": "left_event_C_C", "color": "#334155", "src": "assets/clothes/left_event_C_C.png", "layer": 25, "previewOffset": { "x": -382, "y": -811 } },
