@@ -5,8 +5,8 @@
       "name": "Test Event",
       "outputId": "TestEvent1",
       "conditions": [
-        { "char": "left", "id": "left_white_shirt" },
-        { "char": "right", "id": "right_blue_shirt" }
+        { "char": "left", "id": "left_event_A_C" },
+        { "char": "right", "id": "right_event_A_C" }
       ]
     },
     {
@@ -14,8 +14,8 @@
       "name": "Test Event",
       "outputId": "TestEvent2",
       "conditions": [
-        { "char": "left", "id": "left_white_shirt_Hidden" },
-        { "char": "right", "id": "right_blue_shirt_Hidden" }
+        { "char": "left", "id": "left_hidden_event_A_C" },
+        { "char": "right", "id": "right_hidden_event_A_C" }
       ]
     }
   ]
