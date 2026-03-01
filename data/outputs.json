@@ -16,31 +16,23 @@
 
       ]
     },
-        {
+     {
       "id": "TestEvent2",
       "characterArt": {
-        "left": "assets/characters/character_left_eventA.png",
-        "right": "assets/characters/character_right_eventA.png"
+        "left": "assets/characters/left_event_C_F.png",
+        "right": "assets/characters/character_right.png"
       },  
       "scenes": [
-        { "speaker": "히든", "text": "히든 이벤트 예시입니다." },
-        { "speaker": "캐릭터 A", "text": "캐릭터 이름을 speaker로 지정할 수 있고, 이벤트 중에는 charatersArt에서 지정한 캐릭터 이미지가 기본적으로 사용됩니다." },
+        { "speaker": "백강혁", "text": "먼저갑니다" },
         { 
-          "speaker": "캐릭터 B", 
-          "text": "캐릭터 B의 텍스트입니다. 여기서 지정한 왼쪽 캐릭터의 이미지가 바뀝니다.",  
+          "speaker": "양재원", 
+          "text": "아아아아!왜 아무도 안도와줘어어어!!",  
           "characterArt": { 
-            "left": "assets/characters/character_left_eventB.png" 
+            "right": "assets/characters/right_event_C_F.png" 
           } 
         },
-        { 
-          "speaker": "host", 
-          "text": "이벤트가 끝나면 자동으로 다음 이벤트로 넘어갑니다.",
-          "characterArt": { 
-            "left": "assets/characters/character_left_eventA.png",
-            "right": "assets/characters/character_right_eventB.png" 
-            } 
-        }
+       { "speaker": "백강혁", "text": "먼저갑니다" },
       ]
-    }
+     }
   ]
 }
